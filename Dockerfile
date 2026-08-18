@@ -13,7 +13,10 @@ WORKDIR /opt/fumadocs
 
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml source.config.ts ./
 COPY ./patches ./patches
-RUN pnpm install --no-frozen-lockfile
+COPY ./packages ./packages
+RUN pnpm install --no-frozen-lockfile --ignore-scripts
+
+RUN cd packages/core && pnpm build
 
 COPY --chown=1000:1000 . .
 RUN find /opt/fumadocs -not -path '/opt/fumadocs/node_modules/*' -exec chown 1000:1000 {} + && \

@@ -5,3 +5,5 @@ allowBuilds:
 minimumReleaseAge: 1440
 patchedDependencies:
   '@ai-sdk/openai-compatible@3.0.6': patches/@ai-sdk__openai-compatible@3.0.6.patch
+packages:
+  - 'packages/*'

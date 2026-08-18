@@ -1,0 +1,7 @@
+[role="dialog"] pre > code,
+[role="dialog"] .prose pre > code,
+.search-result-pre,
+.search-result-code {
+  -webkit-mask-image: none !important;
+  mask-image: none !important;
+}
