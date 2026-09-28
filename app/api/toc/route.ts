@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { NextRequest } from 'next/server';
 import { frontmatter as parseFrontmatter } from 'fumadocs-core/content/md/frontmatter';
 import { structure } from 'fumadocs-core/mdx-plugins/remark-structure';
+import remarkMdx from 'remark-mdx';
 
 interface TocResponse {
   title?: string;
@@ -15,8 +16,8 @@ export async function POST(request: NextRequest) {
     const { content, data } = parseFrontmatter(payload);
     const { title = '', key = '' } = data as TocResponse;
 
-    const contentStructure = structure(content, undefined, {
-      types: () => true,
+    const contentStructure = structure(content, [remarkMdx], {
+      types: (node) => node.type !== 'list' && node.type !== 'listItem',
     });
 
     return NextResponse.json({

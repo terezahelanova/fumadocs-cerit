@@ -1,4 +1,4 @@
-import { type DependencyList, use, useRef, useState } from 'react';
+import { type DependencyList, useCallback, use, useRef, useState } from 'react';
 import { useDebounce } from '@/utils/use-debounce';
 import { type FetchOptions } from '@/search/client/fetch';
 import { useOnChange } from '@/utils/use-on-change';
@@ -12,6 +12,12 @@ import type { Awaitable } from '@/types';
 import type { FlexsearchStaticOptions } from './client/flexsearch-static';
 import type { MeilisearchClientOptions } from './client/meilisearch';
 
+export interface PagedSearchResult {
+  results: SortedResult[];
+  page: number;
+  totalPages: number;
+}
+
 interface UseDocsSearch {
   search: string;
   setSearch: (v: string) => void;
@@ -20,44 +26,57 @@ interface UseDocsSearch {
     data?: SortedResult[] | 'empty';
     error?: Error;
   };
+  /**
+   * Fetch and append the next page of results.
+   *
+   * Only functional when the search client implements `searchPage` (currently only Meilisearch).
+   */
+  loadMore: () => void;
+  isLoadingMore: boolean;
+  hasMore: boolean;
 }
 
 export type ClientPreset =
   | ({
-      type: 'fetch';
-    } & FetchOptions)
+    type: 'fetch';
+  } & FetchOptions)
   | ({
-      type: 'static';
-    } & StaticOptions)
+    type: 'static';
+  } & StaticOptions)
   | ({
-      type: 'algolia';
-    } & AlgoliaOptions)
+    type: 'algolia';
+  } & AlgoliaOptions)
   | ({
-      type: 'orama-cloud';
-    } & OramaCloudOptions)
+    type: 'orama-cloud';
+  } & OramaCloudOptions)
   | ({
-      type: 'orama-cloud-legacy';
-    } & OramaCloudLegacyOptions)
+    type: 'orama-cloud-legacy';
+  } & OramaCloudLegacyOptions)
   | ({
-      type: 'flexsearch-static';
-    } & FlexsearchStaticOptions)
+    type: 'flexsearch-static';
+  } & FlexsearchStaticOptions)
   | ({
-      type: 'meilisearch';
-    } & MeilisearchClientOptions)
+    type: 'meilisearch';
+  } & MeilisearchClientOptions)
   | ({
-      /**
-       * @deprecated Use `createMixedbreadSearchAPI` from `fumadocs-core/search/mixedbread` instead.
-       * This client-side approach exposes your API key in the browser.
-       * The server-side approach keeps the key secure and uses `type: 'fetch'` on the client.
-       */
-      type: 'mixedbread';
-    } & MixedbreadOptions)
+    /**
+     * @deprecated Use `createMixedbreadSearchAPI` from `fumadocs-core/search/mixedbread` instead.
+     * This client-side approach exposes your API key in the browser.
+     * The server-side approach keeps the key secure and uses `type: 'fetch'` on the client.
+     */
+    type: 'mixedbread';
+  } & MixedbreadOptions)
   | {
-      client: SearchClient;
-    };
+    client: SearchClient;
+  };
 
 export interface SearchClient {
   search: (query: string) => Awaitable<SortedResult[]>;
+  /**
+   * Optional paged search — when defined, `useDocsSearch` exposes `loadMore`,
+   * `isLoadingMore` and `hasMore`.
+   */
+  searchPage?: (query: string, page: number) => Awaitable<PagedSearchResult>;
   deps?: DependencyList;
 }
 
@@ -94,6 +113,11 @@ export function useDocsSearch(
   const debouncedValue = useDebounce(search, delayMs);
   const onStart = useRef<() => void>(undefined);
 
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const [pageInfo, setPageInfo] = useState({ page: 1, totalPages: 1 });
+  const loadingMoreRef = useRef(false);
+  const debouncedRef = useRef('');
+
   let client: SearchClient;
 
   if ('type' in clientRest) {
@@ -125,8 +149,8 @@ export function useDocsSearch(
       case 'orama-cloud-legacy': {
         const res = (promiseMap[clientRest.type] ??=
           import('./client/orama-cloud-legacy')) as Promise<
-          typeof import('./client/orama-cloud-legacy')
-        >;
+            typeof import('./client/orama-cloud-legacy')
+          >;
         const { oramaCloudLegacyClient } = use(res);
         client = oramaCloudLegacyClient(clientRest);
         break;
@@ -168,14 +192,16 @@ export function useDocsSearch(
       onStart.current = undefined;
     }
 
+    debouncedRef.current = debouncedValue;
     setIsLoading(true);
     let interrupt = false;
     onStart.current = () => {
       interrupt = true;
     };
 
-    async function run(): Promise<SortedResult[] | 'empty'> {
+    async function run(): Promise<PagedSearchResult | SortedResult[] | 'empty'> {
       if (debouncedValue.length === 0 && !allowEmpty) return 'empty';
+      if (client.searchPage) return client.searchPage(debouncedValue, 1);
       return client.search(debouncedValue);
     }
 
@@ -184,7 +210,13 @@ export function useDocsSearch(
         if (interrupt) return;
 
         setError(undefined);
-        setResults(res);
+        if (res !== 'empty' && !Array.isArray(res)) {
+          setResults(res.results.length > 0 ? res.results : 'empty');
+          setPageInfo({ page: res.page, totalPages: res.totalPages });
+        } else {
+          setResults(res);
+          setPageInfo({ page: 1, totalPages: 1 });
+        }
       })
       .catch((err: Error) => {
         setError(err);
@@ -194,7 +226,43 @@ export function useDocsSearch(
       });
   });
 
-  return { search, setSearch, query: { isLoading, data: results, error } };
+  const loadMore = useCallback(() => {
+    if (
+      !client.searchPage ||
+      loadingMoreRef.current ||
+      !debouncedValue ||
+      pageInfo.page >= pageInfo.totalPages
+    ) {
+      return;
+    }
+
+    loadingMoreRef.current = true;
+    setIsLoadingMore(true);
+    void client
+      .searchPage(debouncedValue, pageInfo.page + 1)
+      .then((res) => {
+        if (debouncedRef.current !== debouncedValue) return;
+        setResults((prev) => {
+          const prevList = prev === 'empty' ? [] : prev;
+          return [...prevList, ...res.results];
+        });
+        setPageInfo({ page: res.page, totalPages: res.totalPages });
+      })
+      .catch((err: Error) => setError(err))
+      .finally(() => {
+        loadingMoreRef.current = false;
+        setIsLoadingMore(false);
+      });
+  }, [client, debouncedValue, pageInfo]);
+
+  return {
+    search,
+    setSearch,
+    query: { isLoading, data: results, error },
+    loadMore,
+    isLoadingMore,
+    hasMore: pageInfo.page < pageInfo.totalPages,
+  };
 }
 
 // TODO: remove this on next major
