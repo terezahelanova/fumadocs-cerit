@@ -5,3 +5,5 @@ allowBuilds:
 minimumReleaseAge: 1440
 patchedDependencies:
   '@ai-sdk/openai-compatible@3.0.29': patches/@ai-sdk__openai-compatible@3.0.29.patch
+minimumReleaseAgeExclude:
+  - '@rambutanek/meilisearch-fumadocs-adapter@0.0.1'

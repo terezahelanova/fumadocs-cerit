@@ -1,0 +1,10 @@
+/*
+ * Fixes invisible/faded code blocks in Meilisearch search results.
+ */
+.meilisearch-dialog pre>code,
+.meilisearch-dialog .prose pre>code,
+.meilisearch-dialog .search-result-pre,
+.meilisearch-dialog .search-result-code {
+  -webkit-mask-image: none !important;
+  mask-image: none !important;
+}
