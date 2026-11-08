@@ -47,7 +47,7 @@ resources:
 ## Meilisearch integration
 
 Search is provided by [Meilisearch](https://www.meilisearch.com/) through
-[`@rambutanek/meilisearch-fumadocs-adapter`](https://www.npmjs.com/package/@rambutanek/meilisearch-fumadocs-adapter).
+[`meilisearch-fumadocs-adapter`](https://www.npmjs.com/package/meilisearch-fumadocs-adapter).
 
 ### Environment variables
 

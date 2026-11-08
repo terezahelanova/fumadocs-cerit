@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { fetchFilters } from '@rambutanek/meilisearch-fumadocs-adapter';
+import { fetchFilters } from 'meilisearch-fumadocs-adapter';
 import { meiliClient, MEILISEARCH_INDEX } from '@/lib/meilisearch/meilisearch';
 
 export async function GET(request: Request) {

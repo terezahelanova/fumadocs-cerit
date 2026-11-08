@@ -1,7 +1,7 @@
 import {
   createMeilisearchAPI,
   createUrlNormalizer,
-} from '@rambutanek/meilisearch-fumadocs-adapter';
+} from 'meilisearch-fumadocs-adapter';
 import { meiliClient, MEILISEARCH_INDEX } from '@/lib/meilisearch/meilisearch';
 
 const transformUrl = createUrlNormalizer({ locales: ['cz'], basePath: '/docs' });

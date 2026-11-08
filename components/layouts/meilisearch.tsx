@@ -18,7 +18,7 @@ import { useEffect, useState, useMemo, useCallback } from 'react';
 import { Popover, PopoverContent, PopoverTrigger } from 'fumadocs-ui/components/ui/popover';
 import { buttonVariants } from '@/components/ui/button';
 import { ChevronDown } from 'lucide-react';
-import { meilisearchFilters, useMeilisearchSearch } from '@rambutanek/meilisearch-fumadocs-adapter/client';
+import { meilisearchFilters, useMeilisearchSearch } from 'meilisearch-fumadocs-adapter/client';
 import { useI18n } from 'fumadocs-ui/contexts/i18n';
 import { cn } from '@/lib/cn';
 import './meilisearch.css';
