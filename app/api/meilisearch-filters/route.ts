@@ -4,13 +4,10 @@ import { meiliClient, MEILISEARCH_INDEX } from '@/lib/meilisearch/meilisearch';
 
 export async function GET(request: Request) {
   try {
-    const url = new URL(request.url);
-    const filterAttribute = url.searchParams.get('filterAttribute') ?? undefined;
-
     const filters = await fetchFilters({
       indexUid: MEILISEARCH_INDEX,
       client: meiliClient,
-      filterAttribute: filterAttribute,
+      filterAttribute: process.env.MEILISEARCH_FILTER_ATTRIBUTE || 'scope',
     });
 
     return NextResponse.json(filters);

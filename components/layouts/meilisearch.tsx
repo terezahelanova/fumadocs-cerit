@@ -23,8 +23,6 @@ import { useI18n } from 'fumadocs-ui/contexts/i18n';
 import { cn } from '@/lib/cn';
 import './meilisearch.css';
 
-const FILTER_ATTRIBUTE = process.env.MEILISEARCH_FILTER_ATTRIBUTE || 'scope';
-
 export default function MeilisearchSearchDialog(props: SharedProps) {
   const { locale } = useI18n();
 
@@ -36,7 +34,6 @@ export default function MeilisearchSearchDialog(props: SharedProps) {
   const { search, setSearch, query, loadMore, isLoadingMore, hasMore } = useMeilisearchSearch(
     {
       filterAttributeValue: activeFilter,
-      filterAttribute: FILTER_ATTRIBUTE,
       language: locale,
     },
   );
@@ -51,9 +48,7 @@ export default function MeilisearchSearchDialog(props: SharedProps) {
         const availableFilters = [];
         availableFilters.push(defaultFilter);
 
-        const fetchedFilters = await meilisearchFilters({
-          filterAttribute: FILTER_ATTRIBUTE,
-        });
+        const fetchedFilters = await meilisearchFilters();
         for (const filter of fetchedFilters ?? []) {
           availableFilters.push(filter);
         }
@@ -62,10 +57,7 @@ export default function MeilisearchSearchDialog(props: SharedProps) {
           setFilterOptions(availableFilters);
         }
       } catch (error) {
-        console.error(
-          `Failed to load available filters from Meilisearch for '${FILTER_ATTRIBUTE}':`,
-          error,
-        );
+        console.error('Failed to load available filters from Meilisearch:', error);
 
         if (finishRequest) {
           setFilterOptions([defaultFilter]);

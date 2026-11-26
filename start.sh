@@ -25,29 +25,39 @@ if [ -n "${URL:-}" ] && [ -n "${BRANCH:-}" ]; then
 
   pnpm build
 
-  if [ "${INDEX_SEARCH:-true}" = "true" ]; then
-    INDEXER_URL="${INDEXER_URL:-http://kube-docs-indexer:8080}"
-    (
-      set +e
-      for i in $(seq 1 60); do
-        curl -fs -o /dev/null http://127.0.0.1:3000/ && break
-        sleep 2
-      done
+  # Start Fumadocs so /api/toc is available for indexing.
+  pnpm start &
+  SERVER_PID=$!
 
-      for try in 1 2 3; do
-        if [ -n "${REINDEX_TOKEN:-}" ]; then
-          curl -fsS -X POST -H "X-Reindex-Token: $REINDEX_TOKEN" \
-               "$INDEXER_URL/reindex" && break
-        else
-          curl -fsS -X POST "$INDEXER_URL/reindex" && break
-        fi
-        echo "INDEX-NOTIFY attempt $try failed" >&2
-        sleep $((try * 10))
-      done
-    ) &
+  # Forward termination signals to the server.
+  trap 'kill "$SERVER_PID" 2>/dev/null || true' TERM INT EXIT
+
+  if [ "${INDEX_SEARCH:-true}" = "true" ]; then
+    # Wait until Fumadocs is available.
+    for i in $(seq 1 60); do
+      if curl -fsS -o /dev/null http://127.0.0.1:3000/; then
+        break
+      fi
+
+      if ! kill -0 "$SERVER_PID" 2>/dev/null; then
+        echo "Fumadocs server stopped before indexing" >&2
+        exit 1
+      fi
+
+      if [ "$i" -eq 60 ]; then
+        echo "Fumadocs server did not become available" >&2
+        exit 1
+      fi
+
+      sleep 2
+    done
+
+    python3 "$DEST/upload_data.py" "$DEST/content/docs"
   fi
 
-  exec pnpm start
+  touch /tmp/successful-reindex
+
+  wait "$SERVER_PID"
 else
   cd "$DEST"
   exec pnpm dev

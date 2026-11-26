@@ -33,10 +33,9 @@ const tocRequestSchema = z.object({
   payload: z.string(),
 });
 
-const isContentNode = (node: AstNode) => node.type !== 'list' && node.type !== 'listItem';
-
-const isMdxElement = (node: AstNode) =>
-  node.type === 'mdxJsxFlowElement' || node.type === 'mdxJsxTextElement';
+function isMdxElement(node: AstNode): boolean {
+  return node.type === 'mdxJsxFlowElement' || node.type === 'mdxJsxTextElement';
+}
 
 const mdxStringifier = remark().use(remarkGfm).use(remarkMdx);
 
@@ -53,21 +52,22 @@ function sourceOf(source: string, node: AstNode): string {
   return start != null && end != null ? source.slice(start, end).trim() : '';
 }
 
-function extractContentBlocks(options: {
+function extractContentBlocks({
+  source,
+  out,
+  headings,
+}: {
   source: string;
   out: ContentBlock[];
   headings: HeadingEntry[];
 }) {
-  const { source, out, headings } = options;
-
   return (tree: unknown) => {
     let lastHeading: string | undefined;
 
-    const emit = (node: AstNode, ancestors: AstNode[]) => {
-      let content: string;
-      if (ancestors.length === 0) {
-        content = sourceOf(source, node);
-      } else {
+    function emit(node: AstNode, ancestors: AstNode[]) {
+      let content = sourceOf(source, node);
+
+      if (ancestors.length > 0) {
         const wrapped = ancestors.reduceRight<AstNode>(
           (child, ancestor) => ({ ...ancestor, children: [child] }),
           node,
@@ -76,35 +76,46 @@ function extractContentBlocks(options: {
           .stringify({ type: 'root', children: [wrapped] } as never)
           .trim();
       }
-      if (!content) return;
-      out.push(lastHeading === undefined ? { content } : { heading: lastHeading, content });
-    };
 
-    const walk = (children: AstNode[], ancestors: AstNode[]) => {
+      if (content) {
+        out.push(lastHeading === undefined ? { content } : { heading: lastHeading, content });
+      }
+    }
+
+    function walk(children: AstNode[], ancestors: AstNode[]) {
       for (const node of children) {
         if (node.type === 'heading') {
           lastHeading = node.data?.hProperties?.id;
           if (lastHeading) {
             headings.push({ id: lastHeading, content: headingText(node) });
           }
-        } else if (isMdxElement(node)) {
+          continue;
+        }
+
+        if (isMdxElement(node)) {
           if (node.children?.length) walk(node.children, [...ancestors, node]);
           else emit(node, ancestors);
-        } else if (isContentNode(node)) {
-          emit(node, ancestors);
-        } else if (node.type === 'list' && ancestors.length > 0) {
-          emit(node, ancestors);
-        } else if (node.children?.length) {
-          walk(node.children, ancestors);
+          continue;
         }
+
+        if (node.type === 'list' || node.type === 'listItem') {
+          if (node.type === 'list' && ancestors.length > 0) {
+            emit(node, ancestors);
+          } else if (node.children?.length) {
+            walk(node.children, ancestors);
+          }
+          continue;
+        }
+
+        emit(node, ancestors);
       }
-    };
+    }
 
     walk((tree as AstNode).children ?? [], []);
   };
 }
 
-function buildToc(content: string): unknown {
+function buildToc(content: string): { headings: HeadingEntry[]; contents: ContentBlock[] } {
   const contents: ContentBlock[] = [];
   const headings: HeadingEntry[] = [];
 
@@ -121,8 +132,7 @@ function buildToc(content: string): unknown {
 export async function POST(request: NextRequest) {
   let payload: string;
   try {
-    const body = tocRequestSchema.parse(await request.json());
-    payload = body.payload;
+    payload = tocRequestSchema.parse(await request.json()).payload;
   } catch (error) {
     console.error('Invalid TOC request body:', error);
     return NextResponse.json({ error: 'Bad Request' }, { status: 400 });
@@ -131,17 +141,9 @@ export async function POST(request: NextRequest) {
   try {
     const { content, data } = parseFrontmatter(payload);
     const { title = '', key = '' } = data as TocResponse;
-
-    const structure = buildToc(content);
-
-    return NextResponse.json({
-      structure,
-      title,
-      key,
-    });
+    return NextResponse.json({ structure: buildToc(content), title, key });
   } catch (error) {
     console.error('Error processing TOC request:', error);
-
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }
 }

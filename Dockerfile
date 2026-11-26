@@ -1,7 +1,7 @@
 FROM node:23.11.0-bookworm-slim
 #node:22.6.0-bookworm-slim 
 
-RUN apt-get update && apt-get -y dist-upgrade && apt-get -y install vim git tzdata locales procps python3-pip wget curl unzip && apt-get clean && rm -rf /var/lib/apt/lists/* && ln -fs /usr/share/zoneinfo/Europe/Prague /etc/localtime && dpkg-reconfigure --frontend noninteractive tzdata && sed -i -e 's/# en_US.UTF-8 UTF-8/en_US.UTF-8 UTF-8/' /etc/locale.gen && locale-gen
+RUN apt-get update && apt-get -y dist-upgrade && apt-get -y install vim git tzdata locales procps python3-pip python3-markdown python3-bs4 wget curl unzip && apt-get clean && rm -rf /var/lib/apt/lists/* && ln -fs /usr/share/zoneinfo/Europe/Prague /etc/localtime && dpkg-reconfigure --frontend noninteractive tzdata && sed -i -e 's/# en_US.UTF-8 UTF-8/en_US.UTF-8 UTF-8/' /etc/locale.gen && locale-gen
 
 RUN curl -fsSL https://bun.sh/install | bash && mv /root/.bun /opt/bun
 ENV BUN_INSTALL=/opt/bun
