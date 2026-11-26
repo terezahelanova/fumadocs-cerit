@@ -46,37 +46,14 @@ resources:
 
 ## Meilisearch integration
 
-Search is provided by [Meilisearch](https://www.meilisearch.com/) through
-[`meilisearch-fumadocs-adapter`](https://www.npmjs.com/package/meilisearch-fumadocs-adapter).
-
 ### Environment variables
 
 All variables are read server-side by the Next.js route handlers.
 
 ```bash
-# .env
 MEILISEARCH_HOST=<meilisearch_host>
 MEILISEARCH_KEY=<meilisearch_key>
 MEILISEARCH_INDEX=docs
 MEILISEARCH_FILTER_ATTRIBUTE=scope
 MEILISEARCH_URL_PREFIX=/docs
 ```
-
-| Variable                       | Required | Default | Description                                                                                                  |
-| ------------------------------ | -------- | ------- | ------------------------------------------------------------------------------------------------------------ |
-| `MEILISEARCH_HOST`             | **yes**  | —       | Meilisearch URL                                                                                              |
-| `MEILISEARCH_KEY`              | **yes**  | —       | Meilisearch API key                                                                                          |
-| `MEILISEARCH_INDEX`            | no       | `docs`  | Index uid to search                                                                                          |
-| `MEILISEARCH_FILTER_ATTRIBUTE` | no       | `scope` | Facet attribute powering the search dialog's Filter dropdown; must be `filterable` in the Meilisearch index. |
-| `MEILISEARCH_URL_PREFIX`       | no       | `/docs` | Base path prepended to indexed URLs so search results link to real site routes.                              |
-
-### Routes and components
-
-| File                                   | Purpose                                            |
-| -------------------------------------- | -------------------------------------------------- |
-| `app/api/meilisearch-search/route.ts`  | Search endpoint                                    |
-| `app/api/meilisearch-filters/route.ts` | Facet values for the Filter dropdown               |
-| `app/api/toc/route.ts`                 | MDX → structured chunks, used by the upload script |
-| `lib/meilisearch/meilisearch.ts`       | Meilisearch client configuration                   |
-| `components/layouts/meilisearch.tsx`   | Search dialog                                      |
-| `components/layouts/meilisearch.css`   | Dialog-specific fixes                              |
