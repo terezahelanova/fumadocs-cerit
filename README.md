@@ -43,3 +43,17 @@ resources:
   features and API.
 - [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
 - [Fumadocs](https://fumadocs.dev) - learn about Fumadocs
+
+## Meilisearch integration
+
+### Environment variables
+
+All variables are read server-side by the Next.js route handlers.
+
+```bash
+MEILISEARCH_HOST=<meilisearch_host>
+MEILISEARCH_KEY=<meilisearch_key>
+MEILISEARCH_INDEX=docs
+MEILISEARCH_FILTER_ATTRIBUTE=scope
+MEILISEARCH_URL_PREFIX=/docs
+```

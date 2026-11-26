@@ -9,5 +9,6 @@ minimumReleaseAgeExclude:
   - fumadocs-mdx
   - eslint-config-next
   - '@next/eslint-plugin-next'
-patchedDependencies:
-  '@ai-sdk/openai-compatible@3.0.90': patches/@ai-sdk__openai-compatible@3.0.90.patch
+  - meilisearch-fumadocs-adapter@0.0.3 || 0.0.4
+# patchedDependencies:
+#   '@ai-sdk/openai-compatible@3.0.90': patches/@ai-sdk__openai-compatible@3.0.90.patch

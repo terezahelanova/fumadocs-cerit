@@ -1,6 +1,6 @@
 import { i18nUI } from '@/lib/layout.shared';
+import { Provider } from '@/app/provider';
 
-import { RootProvider } from 'fumadocs-ui/provider/next';
 import { SessionProvider } from 'next-auth/react';
 import './global.css';
 import { Inter } from 'next/font/google';
@@ -33,9 +33,9 @@ export default async function Layout({
     <html lang={lang} className={inter.className} suppressHydrationWarning>
       <body className="flex flex-col min-h-screen">
         <SessionProvider>
-          <RootProvider i18n={i18nUI.provider(lang)} theme={{ enableSystem: false, enabled: false }}>
+          <Provider i18n={i18nUI.provider(lang)} theme={{ enableSystem: false, enabled: false }}>
             {children}
-          </RootProvider>
+          </Provider>
         </SessionProvider>
       </body>
     </html>
